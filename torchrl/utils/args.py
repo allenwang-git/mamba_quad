@@ -30,7 +30,7 @@ def get_args():
   parser.add_argument('--no_cuda', action='store_true', default=False,
                       help='disables CUDA training')
 
-  parser.add_argument('--overwrite', action='store_true', default=False,
+  parser.add_argument('--overwrite', action='store_true', default=True,
                       help='overwrite previous experiments')
 
   parser.add_argument("--device", type=int, default=0,

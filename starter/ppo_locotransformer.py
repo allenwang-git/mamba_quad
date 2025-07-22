@@ -1,4 +1,8 @@
 import os
+os.environ["CUDA_VISIBLE_DEVICES"] = "-1"
+os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
+os.environ['PYOPENGL_PLATFORM'] = 'egl'
+os.environ['EGL_LOG_LEVEL'] = 'fatal'
 import time
 import sys
 import os.path as osp
@@ -18,6 +22,8 @@ from torchrl.utils import get_params
 from torchrl.utils import get_args
 import torch
 
+import warnings
+warnings.filterwarnings("ignore")
 
 args = get_args()
 params = get_params(args.config)
@@ -99,8 +105,8 @@ def experiment(args):
     **params["net"]
   )
 
-  print(pf)
-  print(vf)
+  # print(pf)
+  # print(vf)
 
   params['general_setting']['collector'] = VecOnPolicyCollector(
     vf, env=env, eval_env=eval_env, pf=pf,

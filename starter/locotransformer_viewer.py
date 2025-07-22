@@ -219,7 +219,7 @@ for _ in range(1):
   from vidgear.gears import WriteGear
   output_params = {"-vcodec": "libx264", "-crf": 0, "-preset": "fast"}
   writer = WriteGear(
-    output_filename=os.path.join(
+    output=os.path.join(
       video_output_path, 'Output_{}{}.mp4'.format(args.snap_check, args.add_tag)),
     logging=True, **output_params
   )

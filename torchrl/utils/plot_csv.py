@@ -139,7 +139,7 @@ leg = ax1.legend(
   ncol=1,
   fontsize=10)
 
-for legobj in leg.legendHandles:
+for legobj in leg.legend_handles:
   legobj.set_linewidth(10.0)
 
 title_pre = args.title_prefix if args.title_prefix is not None else env_name
