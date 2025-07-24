@@ -253,6 +253,7 @@ setup(
     "absl-py",
     "scipy",
     "tensorflow",
+    "mamba-ssm",
   ],
   ext_modules=extensions,
   classifiers=[

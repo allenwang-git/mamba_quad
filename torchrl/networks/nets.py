@@ -938,7 +938,7 @@ class LocoTransformer(nn.Module):
 
     self.max_pool = max_pool
     visual_append_input_shape = self.encoder.visual_dim
-
+    print(state_input_shape, visual_input_shape, visual_append_input_shape)
     self.token_norm = token_norm
     if self.token_norm:
       self.token_ln = nn.LayerNorm(self.encoder.visual_dim)
@@ -952,28 +952,28 @@ class LocoTransformer(nn.Module):
           visual_append_input_shape, n_head, dim_feedforward,
           dropout=0
         )
-        self.visual_append_layers.append(visual_att_layer)
-    else:
-      encoder_layer = nn.TransformerEncoderLayer(
-        self.encoder.visual_dim, transformer_params[0][0], transformer_params[0][1],
-        dropout=0
-      )
-      encoder_norm = nn.LayerNorm(self.encoder.visual_dim)
-      self.visual_trans_encoder = nn.TransformerEncoder(
-        encoder_layer, len(transformer_params), encoder_norm
-      )
+        self.visual_append_layers.append(visual_att_layer) # 2 layers of transformer
+    # else:
+    #   encoder_layer = nn.TransformerEncoderLayer(
+    #     self.encoder.visual_dim, transformer_params[0][0], transformer_params[0][1],
+    #     dropout=0
+    #   )
+    #   encoder_norm = nn.LayerNorm(self.encoder.visual_dim)
+    #   self.visual_trans_encoder = nn.TransformerEncoder(
+    #     encoder_layer, len(transformer_params), encoder_norm
+    #   )
     # self.visual_atts = nn.Sequential(*self.visual_append_layers)
 
     self.per_modal_tokens = self.encoder.per_modal_tokens
     if self.encoder.in_channels == 4 or self.encoder.in_channels == 12:
-      self.second = False
+      self.second = False # only depth or only rgbd
     else:
-      self.second = True
+      self.second = True # both 
 
     self.visual_append_fcs = []
     visual_append_input_shape = visual_append_input_shape * 2
-    if self.second:
-      visual_append_input_shape += self.encoder.visual_dim
+    # if self.second:
+    #   visual_append_input_shape += self.encoder.visual_dim
     for next_shape in append_hidden_shapes:
       visual_fc = nn.Linear(visual_append_input_shape, next_shape)
       append_hidden_init_func(visual_fc)
@@ -1006,30 +1006,143 @@ class LocoTransformer(nn.Module):
     out = visual_out
     if self.token_norm:
       out = self.token_ln(out)
+    # do twice self attention
     if not self.use_pytorch_encoder:
       for att_layer in self.visual_append_layers:
+        
         out = att_layer(out)
     else:
       out = self.visual_trans_encoder(out)
     # (# Patches ** 2, Batch_size, Feature Dim)
+
     out_state = out[0, ...]
-    # rgb_depth_channels = (self.encoder.channel_count - 1) // 2
-    # out_rgb = out[1: rgb_depth_channels + 1, ...]
+
     if self.max_pool:
       out_first = out[1: 1 + self.per_modal_tokens, ...].max(dim=0)[0]
     else:
       out_first = out[1: 1 + self.per_modal_tokens, ...].mean(dim=0)
     out_list = [out_state, out_first]
-    if self.second:
-      out_second = out[1 + self.per_modal_tokens: 1 +
-                       2 * self.per_modal_tokens, ...]
-      if self.max_pool:
-        out_second = out_second.max(dim=0)[0]
-      else:
-        out_second = out_second.mean(dim=0)
-      out_list.append(out_second)
+    # if self.second:
+    #   out_second = out[1 + self.per_modal_tokens: 1 +
+    #                    2 * self.per_modal_tokens, ...]
+    #   if self.max_pool:
+    #     out_second = out_second.max(dim=0)[0]
+    #   else:
+    #     out_second = out_second.mean(dim=0)
+    #   out_list.append(out_second)
 
     # out_depth = out_depth
+
+    out = torch.cat(out_list, dim=-1)
+    # (Batch_size, Feature Dim * 3)
+    out = self.visual_seq_append_fcs(out)
+    
+    return out
+
+from mamba_ssm import Mamba, Mamba2
+class LocoMamba(nn.Module):
+  def __init__(
+      self,
+      encoder,
+      output_shape,
+      state_input_shape,
+      visual_input_shape,
+      append_hidden_shapes=[],
+      append_hidden_init_func=init.basic_init,
+      net_last_init_func=init.uniform_init,
+      activation_func=nn.ReLU,
+      detach=False,
+      state_detach=False,
+      max_pool=False,
+      device='cpu',
+      # token_norm=False,
+      **kwargs):
+    super().__init__()
+    self.encoder = encoder
+
+    # self.add_ln = add_ln
+    self.detach = detach
+    self.state_detach = state_detach
+
+    self.state_input_shape = state_input_shape
+    self.visual_input_shape = visual_input_shape
+    self.activation_func = activation_func
+
+    self.max_pool = max_pool
+    visual_append_input_shape = self.encoder.visual_dim
+    print(state_input_shape, visual_input_shape, visual_append_input_shape)
+    # self.token_norm = token_norm
+    # if self.token_norm:
+    #   self.token_ln = nn.LayerNorm(self.encoder.visual_dim)
+    #   self.state_token_ln = nn.LayerNorm(self.encoder.visual_dim)
+
+    self.visual_append_layers = nn.ModuleList()
+    mamba_layer = Mamba(
+      # This module uses roughly 3 * expand * d_model^2 parameters
+      d_model=64, # Model dimension d_model
+      d_state=16,  # SSM state expansion factor
+      d_conv=4,    # Local convolution width
+      expand=2,    # Block expansion factor
+    ).to(device)
+    self.visual_append_layers.append(mamba_layer) # 2 layers of transformer
+
+
+    self.per_modal_tokens = self.encoder.per_modal_tokens
+    if self.encoder.in_channels == 4 or self.encoder.in_channels == 12:
+      self.second = False # only depth or only rgbd
+    else:
+      self.second = True # both 
+
+    self.visual_append_fcs = []
+    visual_append_input_shape = visual_append_input_shape * 2
+
+    for next_shape in append_hidden_shapes:
+      visual_fc = nn.Linear(visual_append_input_shape, next_shape)
+      append_hidden_init_func(visual_fc)
+      self.visual_append_fcs.append(visual_fc)
+      self.visual_append_fcs.append(self.activation_func())
+      # if self.add_ln:
+      #   self.visual_append_fcs.append(
+      #     nn.LayerNorm(next_shape)
+      #   )
+      visual_append_input_shape = next_shape
+
+    visual_last = nn.Linear(visual_append_input_shape, output_shape)
+    net_last_init_func(visual_last)
+
+    self.visual_append_fcs.append(visual_last)
+    self.visual_seq_append_fcs = nn.Sequential(*self.visual_append_fcs)
+
+    self.normalizer = None
+
+  def forward(self, x):
+    state_input = x[..., :self.state_input_shape]
+    visual_input = x[..., self.state_input_shape:].view(
+      torch.Size(state_input.shape[:-1] + self.visual_input_shape)
+    )
+
+    out, _ = self.encoder(
+      visual_input, state_input,
+      detach=self.detach
+    )
+
+    # if self.token_norm:
+    #   out = self.token_ln(out)
+    print(out.shape)
+    # do twice mamba
+    for mamba_encoder in self.visual_append_layers:
+      out = mamba_encoder(out)
+    print(out.shape)
+    # (# Patches ** 2, Batch_size, Feature Dim)
+
+    out_state = out[0, ...]
+
+    if self.max_pool:
+      out_first = out[1: 1 + self.per_modal_tokens, ...].max(dim=0)[0]
+    else:
+      out_first = out[1: 1 + self.per_modal_tokens, ...].mean(dim=0)
+    out_list = [out_state, out_first]
+
 
     out = torch.cat(out_list, dim=-1)
     # (Batch_size, Feature Dim * 3)

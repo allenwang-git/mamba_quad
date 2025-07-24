@@ -507,8 +507,10 @@ class LocoTransformerEncoder(nn.Module):
       **kwargs
   ):
     super(LocoTransformerEncoder, self).__init__()
+    ###############################Vision encoder##################################
     # assert in_channels == 16
     self.in_channels = in_channels
+    print(token_dim)
     self.token_dim = token_dim
     self.two_by_two = two_by_two
     if self.in_channels == 12 or self.in_channels == 16:
@@ -529,10 +531,10 @@ class LocoTransformerEncoder(nn.Module):
         self.depth_up_conv = nn.Conv2d(64, token_dim, 2, stride=2)
       else:
         self.depth_up_conv = nn.Conv2d(64, token_dim, 1)
-
+    ##########################State encoder#########################################
     self.base = MLPBase(
       input_shape=state_input_dim,
-      hidden_shapes=hidden_shapes,
+      hidden_shapes=hidden_shapes, # [256, 256]
       # last_activation_func=nn.Tanh,
       **kwargs
     )
@@ -540,7 +542,9 @@ class LocoTransformerEncoder(nn.Module):
       in_dim=self.base.output_shape,
       out_dim=token_dim
     )
-    self.visual_dim = token_dim  # RGBD(DEPTH) + POSITIONAL
+
+    #############################################################################
+    self.visual_dim = token_dim  # RGBD(DEPTH) + POSITIONAL =64
     self.per_modal_tokens = 16
     if self.two_by_two:
       self.per_modal_tokens = 4
@@ -558,21 +562,21 @@ class LocoTransformerEncoder(nn.Module):
     )
     # (Batch Shape, 16, 64, 64)
 
-    if self.in_channels == 12 or self.in_channels == 16:
-      rgb_visual_x = visual_x[..., :12, :, :]
-    if self.in_channels == 16:
-      depth_visual_x = visual_x[..., 12:, :, :]
+    # if self.in_channels == 12 or self.in_channels == 16:
+    #   rgb_visual_x = visual_x[..., :12, :, :]
+    # if self.in_channels == 16:
+    #   depth_visual_x = visual_x[..., 12:, :, :]
     if self.in_channels == 4:
       depth_visual_x = visual_x[..., :4, :, :]
 
     raw_visual_vecs = []
 
-    if self.in_channels == 12 or self.in_channels == 16:
-      rgb_visual_out_raw = self.rgb_visual_base(
-        rgb_visual_x, detach=detach)
-      # if self.token_dim != 64:
-      rgb_visual_out = self.rgb_up_conv(rgb_visual_out_raw)
-      raw_visual_vecs.append(self.flatten_layer(rgb_visual_out_raw))
+    # if self.in_channels == 12 or self.in_channels == 16:
+    #   rgb_visual_out_raw = self.rgb_visual_base(
+    #     rgb_visual_x, detach=detach)
+    #   # if self.token_dim != 64:
+    #   rgb_visual_out = self.rgb_up_conv(rgb_visual_out_raw)
+    #   raw_visual_vecs.append(self.flatten_layer(rgb_visual_out_raw))
 
     if self.in_channels == 4 or self.in_channels == 16:
       depth_visual_out_raw = self.depth_visual_base(
@@ -588,7 +592,7 @@ class LocoTransformerEncoder(nn.Module):
       visual_shape = depth_visual_out.shape
     # (Batch Shape, Channel, # Patches, # Patches)
     num_patches = visual_shape[-1]
-
+    # print(visual_shape)
     if self.in_channels == 12 or self.in_channels == 16:
       rgb_visual_out = rgb_visual_out.reshape(
         visual_shape[0], visual_shape[1], num_patches * num_patches
@@ -602,11 +606,11 @@ class LocoTransformerEncoder(nn.Module):
       depth_visual_out = depth_visual_out.reshape(
         visual_shape[0], visual_shape[1], num_patches * num_patches
       )
-      # (Batch Shape, Channel, # Patches ** 2)
+      # (Batch Shape, Channel, # Patches ** 2)# [1024 64 4*4]
       depth_visual_out = depth_visual_out.permute(
         2, 0, 1
       )
-      # (# Patches ** 2， Batch Shape, Channel)
+      # (# Patches ** 2， Batch Shape, Channel) [16 1024 64]
 
     state_out = self.base(state_x)
 
@@ -620,7 +624,9 @@ class LocoTransformerEncoder(nn.Module):
     if self.in_channels == 4 or self.in_channels == 16:
       out_list.append(depth_visual_out)
     visual_out = torch.cat(out_list, dim=0)
-
+    # print(self.in_channels)
+    # print("visual_out.shape", visual_out.shape)
+    # print("state_out.shape", state_out_proj.shape)
     if return_raw_visual_vecs:
       return visual_out, state_out, raw_visual_vecs
     return visual_out, state_out

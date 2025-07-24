@@ -88,13 +88,7 @@ def experiment(args):
     **params["encoder"]
   )
 
-  # print(env.observation_space.shape[0])
-  # print("    ")
-  # print((env.image_channels, 64, 64))
-  # print("    ")
-  # print(env.action_space.shape[0])
-
-  pf = policies.GaussianContPolicyLocoTransformer(
+  pf = policies.GaussianContPolicyLocoMamba(
     encoder=encoder,
     state_input_shape=env.observation_space.shape[0],
     visual_input_shape=(env.image_channels, 64, 64),
@@ -103,11 +97,12 @@ def experiment(args):
     **params["policy"]
   )
 
-  vf = networks.LocoTransformer(
+  vf = networks.LocoMamba(
     encoder=encoder,
     state_input_shape=env.observation_space.shape[0],
     visual_input_shape=(env.image_channels, 64, 64),
     output_shape=1,
+    device=device,
     **params["net"]
   )
 

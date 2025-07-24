@@ -80,7 +80,7 @@
         ]
     },
     "collector": {
-        "epoch_frames": 16384,
+        "epoch_frames": 150,
         "max_episode_frames": 999,
         "eval_episodes": 2
     },
