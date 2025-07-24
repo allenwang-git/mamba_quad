@@ -110,8 +110,8 @@ class VecOnPolicyHierarchicalCollector(VecOnPolicyCollector):
 
     traj_lens = []
     for _ in range(self.eval_episodes):
-      done = np.zeros((self.eval_env.env_nums, 1)).astype(np.bool)
-      epi_done = np.zeros((self.eval_env.env_nums, 1)).astype(np.bool)
+      done = np.zeros((self.eval_env.env_nums, 1)).astype(np.bool_)
+      epi_done = np.zeros((self.eval_env.env_nums, 1)).astype(np.bool_)
 
       eval_obs = self.eval_env.reset()
 
