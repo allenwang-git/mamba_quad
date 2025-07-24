@@ -1077,14 +1077,16 @@ class LocoMamba(nn.Module):
     #   self.state_token_ln = nn.LayerNorm(self.encoder.visual_dim)
 
     self.visual_append_layers = nn.ModuleList()
-    mamba_layer = Mamba(
-      # This module uses roughly 3 * expand * d_model^2 parameters
-      d_model=64, # Model dimension d_model
-      d_state=16,  # SSM state expansion factor
-      d_conv=4,    # Local convolution width
-      expand=2,    # Block expansion factor
-    ).to(device)
-    self.visual_append_layers.append(mamba_layer) # 2 layers of transformer
+    for i in range(2):
+      mamba_layer = Mamba(
+        # This module uses roughly 3 * expand * d_model^2 parameters
+        d_model=64, # Model dimension d_model
+        d_state=16,  # SSM state expansion factor
+        d_conv=4,    # Local convolution width
+        expand=2,    # Block expansion factor
+      ).to(device)
+
+      self.visual_append_layers.append(mamba_layer) # 2 layers of mamba
 
 
     self.per_modal_tokens = self.encoder.per_modal_tokens
