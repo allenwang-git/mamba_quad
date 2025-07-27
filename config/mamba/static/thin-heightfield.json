@@ -89,15 +89,15 @@
     },
     "general_setting": {
         "discount": 0.99,
-        "num_epochs": 1500,
+        "num_epochs": 800,
         "batch_size": 1024,
         "gae": true,
         "save_interval": 100,
         "eval_interval": 10
     },
     "ppo": {
-        "plr": 0.0003,
-        "vlr": 0.0003,
+        "plr": 0.0002,
+        "vlr": 0.0002,
         "clip_para": 0.2,
         "opt_epochs": 3,
         "tau": 0.95,
