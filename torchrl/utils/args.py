@@ -43,7 +43,10 @@ def get_args():
   args = parser.parse_args()
 
   args.cuda = not args.no_cuda and torch.cuda.is_available()
-
+  if torch.cuda.is_available():
+      print("CUDA is available! Using GPU.")
+  else:
+      print("CUDA is NOT available. Using CPU.")
   return args
 
 

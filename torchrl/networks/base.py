@@ -500,7 +500,7 @@ class LocoTransformerEncoder(nn.Module):
       in_channels,
       state_input_dim,
       hidden_shapes,
-      token_dim=64,
+      token_dim=128,
       two_by_two=False,
       visual_dim=None,
       proj=True,
@@ -510,7 +510,7 @@ class LocoTransformerEncoder(nn.Module):
     ###############################Vision encoder##################################
     # assert in_channels == 16
     self.in_channels = in_channels
-    print(token_dim)
+    print("token_dim:", token_dim)
     self.token_dim = token_dim
     self.two_by_two = two_by_two
     if self.in_channels == 12 or self.in_channels == 16:
@@ -518,9 +518,9 @@ class LocoTransformerEncoder(nn.Module):
         12, flatten=False
       )
       if two_by_two:
-        self.rgb_up_conv = nn.Conv2d(64, token_dim, 2, stride=2)
+        self.rgb_up_conv = nn.Conv2d(token_dim, token_dim, 2, stride=2)
       else:
-        self.rgb_up_conv = nn.Conv2d(64, token_dim, 1)
+        self.rgb_up_conv = nn.Conv2d(token_dim, token_dim, 1)
 
     if self.in_channels == 4 or self.in_channels == 16:
       self.depth_visual_base = NatureEncoder(
@@ -528,7 +528,7 @@ class LocoTransformerEncoder(nn.Module):
       )
       # if token_dim != 64:
       if two_by_two:
-        self.depth_up_conv = nn.Conv2d(64, token_dim, 2, stride=2)
+        self.depth_up_conv = nn.Conv2d(token_dim, token_dim, 2, stride=2)
       else:
         self.depth_up_conv = nn.Conv2d(64, token_dim, 1)
     ##########################State encoder#########################################
@@ -544,7 +544,7 @@ class LocoTransformerEncoder(nn.Module):
     )
 
     #############################################################################
-    self.visual_dim = token_dim  # RGBD(DEPTH) + POSITIONAL =64
+    self.visual_dim = visual_dim  # RGBD(DEPTH) + POSITIONAL =64
     self.per_modal_tokens = 16
     if self.two_by_two:
       self.per_modal_tokens = 4
@@ -560,14 +560,14 @@ class LocoTransformerEncoder(nn.Module):
     visual_x = visual_x.view(torch.Size(
       [np.prod(visual_x.size()[:-3])]) + visual_x.size()[-3:]
     )
-    # (Batch Shape, 16, 64, 64)
+    # (Batch Shape(1024), 16, 64, 64)
 
     # if self.in_channels == 12 or self.in_channels == 16:
     #   rgb_visual_x = visual_x[..., :12, :, :]
     # if self.in_channels == 16:
     #   depth_visual_x = visual_x[..., 12:, :, :]
     if self.in_channels == 4:
-      depth_visual_x = visual_x[..., :4, :, :]
+      depth_visual_x = visual_x[..., :4, :, :] # [1024 4 64 64]
 
     raw_visual_vecs = []
 
@@ -582,7 +582,9 @@ class LocoTransformerEncoder(nn.Module):
       depth_visual_out_raw = self.depth_visual_base(
         depth_visual_x, detach=detach)
       # if self.token_dim != 64:
+      # print(depth_visual_out_raw.shape)
       depth_visual_out = self.depth_up_conv(depth_visual_out_raw)
+      # print(depth_visual_out.shape)
       raw_visual_vecs.append(self.flatten_layer(depth_visual_out_raw))
 
     # (Batch Shape, Channel, # Patches, # Patches)

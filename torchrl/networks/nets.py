@@ -1054,12 +1054,12 @@ class LocoMamba(nn.Module):
       detach=False,
       state_detach=False,
       max_pool=False,
-      device='cpu',
-      # token_norm=False,
+      device='cuda',
+      token_norm=True,
       **kwargs):
     super().__init__()
     self.encoder = encoder
-
+    self.device = device
     # self.add_ln = add_ln
     self.detach = detach
     self.state_detach = state_detach
@@ -1071,19 +1071,21 @@ class LocoMamba(nn.Module):
     self.max_pool = max_pool
     visual_append_input_shape = self.encoder.visual_dim
     print(state_input_shape, visual_input_shape, visual_append_input_shape)
-    # self.token_norm = token_norm
-    # if self.token_norm:
-    #   self.token_ln = nn.LayerNorm(self.encoder.visual_dim)
-    #   self.state_token_ln = nn.LayerNorm(self.encoder.visual_dim)
+    self.token_norm = token_norm
+    if self.token_norm:
+      self.token_ln = nn.LayerNorm(self.encoder.visual_dim)
+      self.state_token_ln = nn.LayerNorm(self.encoder.visual_dim)
 
     self.visual_append_layers = nn.ModuleList()
-    for i in range(2):
+    for i in range(4):
       mamba_layer = Mamba(
         # This module uses roughly 3 * expand * d_model^2 parameters
-        d_model=64, # Model dimension d_model
+        d_model=self.encoder.visual_dim, # Model dimension d_model
         d_state=16,  # SSM state expansion factor
-        d_conv=4,    # Local convolution width
+        d_conv=3,    # Local convolution width
         expand=2,    # Block expansion factor
+        dt_min=0.01,  # Minimum time step
+        dt_max=0.1,   # Maximum time step
       ).to(device)
 
       self.visual_append_layers.append(mamba_layer) # 2 layers of mamba
@@ -1127,16 +1129,20 @@ class LocoMamba(nn.Module):
       visual_input, state_input,
       detach=self.detach
     )
-
+    out = out.to(self.device)
     # if self.token_norm:
     #   out = self.token_ln(out)
-    print(out.shape)
+    # print(out.shape)
     # do twice mamba
+    # input_projection = nn.Linear(64, 256).to(self.device)
+    # Then in your forward pass:
+    # out = input_projection(out)
     for mamba_encoder in self.visual_append_layers:
-      out = mamba_encoder(out)
-    print(out.shape)
+      out = mamba_encoder(self.token_ln(out))
+    # print(out.shape)
     # (# Patches ** 2, Batch_size, Feature Dim)
-
+    # output_projection = nn.Linear(256,64).to(self.device)
+    # out = output_projection(out)
     out_state = out[0, ...]
 
     if self.max_pool:

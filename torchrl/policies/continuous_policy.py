@@ -126,18 +126,30 @@ class GaussianContPolicyBase():
 
   def update(self, obs, actions):
     mean, std, log_std = self.forward(obs)
+    mean = torch.clamp(mean, min=1e-6, max=1e6)
+    std = torch.clamp(std, min=1e-6, max=1e6)
+    log_std = torch.clamp(log_std, min=LOG_SIG_MIN, max=LOG_SIG_MAX)
 
-    if self.tanh_action:
-      dis = TanhNormal(mean, std)
-    else:
-      dis = Normal(mean, std)
+
+
+    # if self.tanh_action:
+    #   dis = TanhNormal(mean, std)
+    # else:
+    #   if(torch.isnan(mean).any()):
+
+    #     print("Any nan in mean?", torch.isnan(mean).any())
+        
+    #   if(torch.isnan(std).any()):
+    #     print("Any nan in std?", torch.isnan(std).any())
+
+    dis = Normal(mean, std)
 
     log_prob = dis.log_prob(actions).sum(-1, keepdim=True)
     ent = dis.entropy().sum(-1, keepdim=True)
 
     out = {
       "mean": mean,
-      "dis": Normal(mean, std),
+      "dis": dis,
       "log_std": log_std,
       "std": std,
       "log_prob": log_prob,

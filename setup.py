@@ -244,7 +244,7 @@ setup(
   install_requires=[
     'numpy',
     'pybullet',
-    "torch",
+    "torch==2.4.1",
     "gym==0.23.1",
     "opencv-python",
     "toolz",
@@ -252,8 +252,9 @@ setup(
     "attrs",
     "absl-py",
     "scipy",
-    "tensorflow",
+    "tensorflow==2.12.0",
     "mamba-ssm",
+    # "cuda-toolkit",
   ],
   ext_modules=extensions,
   classifiers=[

@@ -1,8 +1,8 @@
 import os
-os.environ["CUDA_VISIBLE_DEVICES"] = "-1"
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
 os.environ['PYOPENGL_PLATFORM'] = 'egl'
 os.environ['EGL_LOG_LEVEL'] = 'fatal'
+os.environ['PYTORCH_CUDA_ALLOC_CONF'] = 'expandable_segments:True' # memory optimization
 import time
 import sys
 import os.path as osp
@@ -91,7 +91,7 @@ def experiment(args):
   pf = policies.GaussianContPolicyLocoMamba(
     encoder=encoder,
     state_input_shape=env.observation_space.shape[0],
-    visual_input_shape=(env.image_channels, 64, 64),
+    visual_input_shape=(env.image_channels, 128, 128),
     output_shape=env.action_space.shape[0],
     **params["net"],
     **params["policy"]
@@ -100,7 +100,7 @@ def experiment(args):
   vf = networks.LocoMamba(
     encoder=encoder,
     state_input_shape=env.observation_space.shape[0],
-    visual_input_shape=(env.image_channels, 64, 64),
+    visual_input_shape=(env.image_channels, 128, 128),
     output_shape=1,
     device=device,
     **params["net"]

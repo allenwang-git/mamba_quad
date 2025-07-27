@@ -593,7 +593,7 @@ class LocomotionGymEnv(gym.Env):
           self.np_random.randint(1, self.frame_extract)
         ] + [self.frame_idx[i] + self.frame_extract for i in range(3)]
       if self.empty_image:
-        grayscale = np.zeros((self._image_channels, 64, 64))
+        grayscale = np.zeros((self._image_channels, 128, 128))
         if reset:
           for i in range(self.num_stored_frames):
             self.current_frames.appendleft(grayscale)
@@ -649,7 +649,7 @@ class LocomotionGymEnv(gym.Env):
       )
 
       camera_image_set = self.pybullet_client.getCameraImage(
-        64, 64, viewMatrix=viewMat2, projectionMatrix=proj_mat,
+        128, 128, viewMatrix=viewMat2, projectionMatrix=proj_mat,
         # flags=pybullet.ER_NO_SEGMENTATION_MASK,
         shadow=1,
         lightDirection=[1, 1, 1],
@@ -665,7 +665,7 @@ class LocomotionGymEnv(gym.Env):
         if self.blinding_spot:
           num_spots = self.np_random.randint(3, 30)
           blinding_indices = self.np_random.randint(
-            0, 64, size=(num_spots, 2))
+            0, 128, size=(num_spots, 2))
           for idx in blinding_indices:
             depth[:, idx[0], idx[1]] = 10
         depth = np.clip(depth, a_min=0.3, a_max=10)
