@@ -7,6 +7,7 @@ import torch.nn.functional as F
 import torchrl.networks.init as init
 import torchrl.networks.base as base
 from mamba_ssm import Mamba
+from efficient_kan import KAN
 
 
 class ZeroNet(nn.Module):
@@ -194,22 +195,18 @@ class NatureEncoderProjNet(nn.Module):
 
 class ImpalaEncoderProjNet(nn.Module):
   def __init__(
-    self,
-
-    encoder,
-
-    output_shape,
-
-    state_input_shape,
-    visual_input_shape,
-
-    append_hidden_shapes=[],
-
+      self,
+      encoder,
+      output_shape,
+      state_input_shape,
+      visual_input_shape,
+      append_hidden_shapes=[],
       append_hidden_init_func=init.basic_init,
       net_last_init_func=init.uniform_init,
       activation_func=nn.ReLU,
       add_ln=False,
       detach=False,
+      base_type="KAN",
       **kwargs):
     super().__init__()
     self.encoder = encoder
@@ -226,22 +223,41 @@ class ImpalaEncoderProjNet(nn.Module):
 
     append_input_shape = self.encoder.base.output_shape + self.encoder.visual_dim
 
-    for next_shape in append_hidden_shapes:
-      fc = nn.Linear(append_input_shape, next_shape)
-      append_hidden_init_func(fc)
-      self.append_fcs.append(fc)
-      self.append_fcs.append(self.activation_func())
-      if self.add_ln:
-        self.append_fcs.append(
-          nn.LayerNorm(next_shape)
-        )
-      append_input_shape = next_shape
 
-    last = nn.Linear(append_input_shape, output_shape)
-    net_last_init_func(last)
+    if base_type == 'KAN':
+      # Use efficient_kan.KAN directly
+      layers_hidden = [append_input_shape] + list(append_hidden_shapes) + [output_shape]
+      kan_net = KAN(
+        layers_hidden=layers_hidden,
+        grid_size=kwargs.get('grid_size', 5),
+        spline_order=kwargs.get('spline_order', 3),
+        scale_noise=kwargs.get('scale_noise', 0.1),
+        scale_base=kwargs.get('scale_base', 1.0),
+        scale_spline=kwargs.get('scale_spline', 1.0),
+        base_activation=kwargs.get('base_activation', nn.SiLU),
+        grid_eps=kwargs.get('grid_eps', 0.02),
+        grid_range=kwargs.get('grid_range', [-1, 1])
+      )
+      self.seq_append_fcs = kan_net
+      print("Using efficient_kan.KAN as the append network")
+    else:
+      for next_shape in append_hidden_shapes:
+        fc = nn.Linear(append_input_shape, next_shape)
+        append_hidden_init_func(fc)
+        self.append_fcs.append(fc)
+        self.append_fcs.append(self.activation_func())
+        if self.add_ln:
+          self.append_fcs.append(
+            nn.LayerNorm(next_shape)
+          )
+        append_input_shape = next_shape
 
-    self.append_fcs.append(last)
-    self.seq_append_fcs = nn.Sequential(*self.append_fcs)
+      last = nn.Linear(append_input_shape, output_shape)
+      net_last_init_func(last)
+
+      self.append_fcs.append(last)
+      self.seq_append_fcs = nn.Sequential(*self.append_fcs)
+      print("Using MLP as the append network")
 
     self.normalizer = None
 
@@ -265,18 +281,15 @@ class ImpalaEncoderProjNet(nn.Module):
 
 class ImpalaEncoderProjResidualActor(nn.Module):
   def __init__(
-    self,
-    encoder,
-    projector,
-
-    output_shape,
-
-    state_input_shape,
-    visual_input_shape,
-
-    append_hidden_shapes=[],
-    state_hidden_shapes=[],
-
+      self,
+      encoder,
+      projector,
+      output_shape,
+      state_input_shape,
+      visual_input_shape,
+      append_hidden_shapes=[],
+      state_hidden_shapes=[],
+      base_type="KAN",
       append_hidden_init_func=init.basic_init,
       net_last_init_func=init.uniform_init,
       activation_func=nn.ReLU,
@@ -296,7 +309,7 @@ class ImpalaEncoderProjResidualActor(nn.Module):
 
     self.activation_func = activation_func
 
-    self.base = networks.MLPBase(
+    self.base = networks.KANBase(
       input_shape=state_input_shape,
       hidden_shapes=state_hidden_shapes,
       add_ln=add_ln, activation_func=activation_func, **kwargs
