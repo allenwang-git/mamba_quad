@@ -84,7 +84,7 @@ env = get_env(
   params['env_name'],
   params['env'])
 
-params['net']['base_type'] = networks.MLPBase
+# base_type is now read from config file
 
 # params['pf_net']['base_type'] = networks.MLPBase
 # params['pf_net']['activation_func'] = torch.nn.ReLU
