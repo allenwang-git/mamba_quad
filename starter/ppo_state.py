@@ -87,7 +87,6 @@ def experiment(args):
   params['general_setting']['logger'] = logger
   params['general_setting']['device'] = device
 
-  params['net']['base_type'] = networks.MLPBase
   # params['net']['activation_func'] = torch.nn.Tanh
 
   pf = policies.GaussianContPolicyBasicBias(
