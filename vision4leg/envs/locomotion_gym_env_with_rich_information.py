@@ -63,6 +63,7 @@ class LocomotionGymEnv(gym.Env):
                grayscale=True,
                front=True,
                random_init_range=0,
+               vision_only=False,
                fric_coeff=[0.8, 0.1, 0.1],
                frame_extract=1,
                init_pos=None,
@@ -98,6 +99,7 @@ class LocomotionGymEnv(gym.Env):
     self._gym_config = gym_config
     self._robot_class = robot_class
     self._robot_sensors = robot_sensors
+    self.vision_only = vision_only
 
     self.get_image_interval = get_image_interval
     self.init_pos = init_pos
@@ -537,8 +539,10 @@ class LocomotionGymEnv(gym.Env):
       observations: sensory observation in the numpy array format
     """
     sensors_dict = {}
-    for s in self.all_sensors():
-      sensors_dict[s.get_name()] = s.get_observation()
+    if not self.vision_only:
+      for s in self.all_sensors():
+        sensors_dict[s.get_name()] = s.get_observation()
+        print("Sensor: ",s.get_name())
 
     for r in self._env_randomizers:
       if hasattr(r, 'env_info'):
