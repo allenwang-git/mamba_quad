@@ -144,6 +144,7 @@ class NatureEncoderProjNet(nn.Module):
       activation_func=nn.ReLU,
       add_ln=False,
       detach=False,
+      base_type="KAN",
       **kwargs):
     super().__init__()
     self.encoder = encoder
@@ -158,23 +159,40 @@ class NatureEncoderProjNet(nn.Module):
     self.append_fcs = []
 
     append_input_shape = self.encoder.output_dim
+    if base_type == 'KAN':
+      # Use efficient_kan.KAN directly
+      layers_hidden = [append_input_shape] + list(append_hidden_shapes) + [output_shape]
+      kan_net = KAN(
+        layers_hidden=layers_hidden,
+        grid_size=kwargs.get('grid_size', 5),
+        spline_order=kwargs.get('spline_order', 3),
+        scale_noise=kwargs.get('scale_noise', 0.1),
+        scale_base=kwargs.get('scale_base', 1.0),
+        scale_spline=kwargs.get('scale_spline', 1.0),
+        base_activation=kwargs.get('base_activation', nn.SiLU),
+        grid_eps=kwargs.get('grid_eps', 0.02),
+        grid_range=kwargs.get('grid_range', [-1, 1])
+      )
+      self.seq_append_fcs = kan_net
+      print("Using efficient_kan.KAN as the vision only append network")
+    else:
+      for next_shape in append_hidden_shapes:
+        fc = nn.Linear(append_input_shape, next_shape)
+        append_hidden_init_func(fc)
+        self.append_fcs.append(fc)
+        self.append_fcs.append(self.activation_func())
+        if self.add_ln:
+          self.append_fcs.append(
+            nn.LayerNorm(next_shape)
+          )
+        append_input_shape = next_shape
 
-    for next_shape in append_hidden_shapes:
-      fc = nn.Linear(append_input_shape, next_shape)
-      append_hidden_init_func(fc)
-      self.append_fcs.append(fc)
-      self.append_fcs.append(self.activation_func())
-      if self.add_ln:
-        self.append_fcs.append(
-          nn.LayerNorm(next_shape)
-        )
-      append_input_shape = next_shape
+      last = nn.Linear(append_input_shape, output_shape)
+      net_last_init_func(last)
 
-    last = nn.Linear(append_input_shape, output_shape)
-    net_last_init_func(last)
-
-    self.append_fcs.append(last)
-    self.seq_append_fcs = nn.Sequential(*self.append_fcs)
+      self.append_fcs.append(last)
+      self.seq_append_fcs = nn.Sequential(*self.append_fcs)
+      print("Using MLP as the vision only append network")
 
     self.normalizer = None
 
