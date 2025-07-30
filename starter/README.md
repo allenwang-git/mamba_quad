@@ -1,5 +1,7 @@
 # Mamba vs Transformer
 
+## Training
+
 - state only
   - python starter/ppo_state.py --config config/rl/static/state-only-baseline.json
 - Mamba vision only
@@ -54,7 +56,13 @@
 
   - python starter/total_randomize_statistics.py  --log_dir ../logmamba/logs/mamba-vision-state     --env_name A1MoveGround --config config/mamba/static/thin.json --add_tag mamba-vision-state --seed 0 1 2 3 4 5 6 7 8 9
 
+
 # KAN vs MLP
+
+## Install KAN pkg
+- pip install git+[https://github.com/Blealtan/efficient-kan.git](https://github.com/Blealtan/efficient-kan.git)
+
+## Training
 
 - vision only
   - python starter/ppo_nature_cnn_vision_only.py --config config/rl/static/naive_baseline/thin-vision.json
