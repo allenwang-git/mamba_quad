@@ -56,8 +56,9 @@
 
 # KAN vs MLP
 
-- vision only (NO MLP OR KAN)
+- vision only
   - python starter/ppo_nature_cnn_vision_only.py --config config/rl/static/naive_baseline/thin-vision.json
+  - python starter/ppo_nature_cnn_vision_only.py --config config/rl/static/naive_baseline/thin-vision-mlp.json
 - state only (NO MLP OR KAN)
   - python starter/ppo_state.py --config config/rl/static/state-only-baseline.json
 - MLP v+s
