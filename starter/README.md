@@ -1,3 +1,5 @@
+* pip install git+[https://github.com/Blealtan/efficient-kan.git](https://github.com/Blealtan/efficient-kan.git)
+
 # KAN vs MLP
 
 - vision only
