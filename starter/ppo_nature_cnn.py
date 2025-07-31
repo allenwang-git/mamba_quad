@@ -75,12 +75,12 @@ def experiment(args):
   params['general_setting']['logger'] = logger
   params['general_setting']['device'] = device
 
-  params['net']['base_type'] = networks.MLPBase
   # params['net']['activation_func'] = torch.nn.Tanh
 
   encoder = networks.NatureFuseEncoder(
     in_channels=env.image_channels,
     state_input_dim=env.observation_space.shape[0],
+    base_type=params["net"]['base_type'],
     **params["encoder"]
   )
 

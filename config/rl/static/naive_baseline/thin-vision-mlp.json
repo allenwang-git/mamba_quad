@@ -41,6 +41,7 @@
                 0.01
             ],
             "target_vel": 1.0,
+            "vision_only": true,
             "random_init_range": 1.0,
             "domain_randomization": true,
             "enable_action_interpolation": false,
@@ -63,7 +64,7 @@
         "visual_dim": 256
     },
     "net": {
-        "base_type": "KAN",
+        "base_type": "MLP",
         "append_hidden_shapes": [
             256,
             256

@@ -3,6 +3,73 @@ import torch.nn as nn
 import torch.nn.functional as F
 import numpy as np
 import torchrl.networks.init as init
+import math
+from efficient_kan import KAN
+
+
+class KANBase(nn.Module):
+    def __init__(
+        self,
+        input_shape,
+        hidden_shapes,
+        activation_func=None,  # Kept for compatibility but not used
+        init_func=None,  # Kept for compatibility but not used
+        add_ln=False,
+        last_activation_func=None,  # Kept for compatibility but not used
+        grid_size=5,
+        spline_order=3,
+        scale_noise=0.1,
+        scale_base=1.0,
+        scale_spline=1.0,
+        base_activation=nn.SiLU,
+        grid_eps=0.02,
+        grid_range=[-1, 1]):
+        super().__init__()
+
+        # Note: activation_func and last_activation_func are kept for API compatibility
+        # but not used since efficient-kan handles activations internally
+        self.add_ln = add_ln
+        
+        input_dim = np.prod(input_shape)
+        
+        # Build layers_hidden list for efficient-kan
+        if len(hidden_shapes) == 0:
+            layers_hidden = [input_dim]
+        else:
+            layers_hidden = [input_dim] + list(hidden_shapes)
+        
+        # Create the efficient-KAN network
+        self.kan = KAN(
+            layers_hidden=layers_hidden,
+            grid_size=grid_size,
+            spline_order=spline_order,
+            scale_noise=scale_noise,
+            scale_base=scale_base,
+            scale_spline=scale_spline,
+            base_activation=base_activation,
+            grid_eps=grid_eps,
+            grid_range=grid_range
+        )
+        
+        # Set output_shape for compatibility with existing code
+        self.output_shape = layers_hidden[-1] if len(layers_hidden) > 1 else input_dim
+        
+        # Add optional layer normalization if requested
+        self.layer_norms = nn.ModuleList()
+        if add_ln:
+            for hidden_size in hidden_shapes:
+                self.layer_norms.append(nn.LayerNorm(hidden_size))
+
+    def forward(self, x):
+        # Pass through the efficient-KAN network
+        x = self.kan(x)
+        
+        # Apply layer normalization if enabled
+        if self.add_ln and len(self.layer_norms) > 0:
+            # Apply layer norm to the final output
+            x = self.layer_norms[-1](x)
+        
+        return x
 
 
 class MLPBase(nn.Module):
@@ -269,7 +336,7 @@ class ImpalaFuseEncoder(nn.Module):
       out_dim=visual_dim
     )
 
-    self.base = MLPBase(
+    self.base = KANBase(
       input_shape=state_input_dim,
       hidden_shapes=hidden_shapes,
       # last_activation_func=nn.Tanh,
@@ -349,8 +416,10 @@ class NatureFuseEncoder(nn.Module):
                visual_dim,
                hidden_shapes,
                proj=True,
+               base_type='KAN',
                **kwargs):
     super(NatureFuseEncoder, self).__init__()
+    # vision encoder
     self.visual_base = NatureEncoder(
       in_channels
     )
@@ -360,8 +429,15 @@ class NatureFuseEncoder(nn.Module):
       in_dim=self.visual_base.output_dim,
       out_dim=visual_dim
     )
-
-    self.base = MLPBase(
+    # state encoder
+    if isinstance(base_type, str):
+      if base_type == 'KAN':
+        base = KANBase
+        print(f"Using KANBase for state input")
+      else:
+        base = MLPBase
+        print(f"Using MLPBase for state input")
+    self.base = base(
       input_shape=state_input_dim,
       hidden_shapes=hidden_shapes,
       # last_activation_func=nn.Tanh,
@@ -530,7 +606,7 @@ class LocoTransformerEncoder(nn.Module):
       else:
         self.depth_up_conv = nn.Conv2d(64, token_dim, 1)
 
-    self.base = MLPBase(
+    self.base = KANBase(
       input_shape=state_input_dim,
       hidden_shapes=hidden_shapes,
       # last_activation_func=nn.Tanh,

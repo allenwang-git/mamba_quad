@@ -289,6 +289,23 @@ class GaussianContPolicyImpalaEncoderProj(networks.ImpalaEncoderProjNet, Gaussia
     std = std.unsqueeze(0).expand_as(mean)
     return mean, std, logstd
 
+class GaussianContPolicyImpalaEncoderProjResidual(networks.ImpalaEncoderProjResidualActor, GaussianContPolicyBase):
+  def __init__(self, output_shape, tanh_action=False, log_init=0.125, **kwargs):
+    super().__init__(output_shape=output_shape, **kwargs)
+    self.continuous = True
+    self.logstd = nn.Parameter(torch.ones(output_shape) * np.log(log_init))
+    self.tanh_action = tanh_action
+
+  def forward(self, x):
+    mean = super().forward(x)
+
+    # logstd = torch.clamp(self.logstd, LOG_SIG_MIN, LOG_SIG_MAX)
+    logstd = self.logstd
+    logstd = torch.clamp(logstd, LOG_SIG_MIN, LOG_SIG_MAX)
+    std = torch.exp(logstd)
+    std = std.unsqueeze(0).expand_as(mean)
+    return mean, std, logstd
+
 
 class GaussianContPolicyImpalaFuseResidual(networks.ImpalaFuseResidualActor, GaussianContPolicyBase):
   def __init__(self, output_shape, tanh_action=False, log_init=0.125, **kwargs):
