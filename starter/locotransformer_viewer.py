@@ -47,7 +47,7 @@ def get_args():
   parser.add_argument('--snap_check', type=str, default='best')
 
   # tensorboard
-  parser.add_argument("--id", type=str,   default=None,
+  parser.add_argument("--id", type=str,   default="",
                       help="id for tensorboard", )
 
   args = parser.parse_args()

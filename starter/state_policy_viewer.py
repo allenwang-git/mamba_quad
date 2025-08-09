@@ -47,7 +47,7 @@ def get_args():
   parser.add_argument('--snap_check', type=str, default='best')
 
   # tensorboard
-  parser.add_argument("--id", type=str, default=None,
+  parser.add_argument("--id", type=str, default="",
                       help="id for tensorboard", )
   parser.add_argument("--no_text", action="store_true")
   parser.add_argument("--record_video", action="store_true", default=False,)
@@ -179,8 +179,8 @@ for _ in range(1):
   from vidgear.gears import WriteGear
   output_params = {"-crf": 0, "-preset": "fast"}
   writer = WriteGear(
-    output_filename=os.path.join(
-      video_output_path, 'Output{}.mp4'.format(args.add_tag)),
+    output=os.path.join(
+      video_output_path, 'Output_{}{}.mp4'.format(args.snap_check, args.add_tag)),
     logging=True, **output_params
   )
   # out = cv2.VideoWriter('project.mp4',cv2.VideoWriter_fourcc(*'mp4v'), 20.00, (360, 480))
