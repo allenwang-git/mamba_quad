@@ -63,7 +63,7 @@
         "visual_dim": 256
     },
     "net": {
-        "base_type": "KAN",
+        "base_type": "MLP",
         "append_hidden_shapes": [
             256,
             256

@@ -336,7 +336,7 @@ class ImpalaFuseEncoder(nn.Module):
       out_dim=visual_dim
     )
 
-    self.base = KANBase(
+    self.base = MLPBase(
       input_shape=state_input_dim,
       hidden_shapes=hidden_shapes,
       # last_activation_func=nn.Tanh,
@@ -430,13 +430,12 @@ class NatureFuseEncoder(nn.Module):
       out_dim=visual_dim
     )
     # state encoder
-    if isinstance(base_type, str):
-      if base_type == 'KAN':
-        base = KANBase
-        print(f"Using KANBase for state input")
-      else:
-        base = MLPBase
-        print(f"Using MLPBase for state input")
+    if base_type == 'KAN':
+      base = KANBase
+      print(f"Using KANBase for state input")
+    else:
+      base = MLPBase
+      print(f"Using MLPBase for state input")
     self.base = base(
       input_shape=state_input_dim,
       hidden_shapes=hidden_shapes,
@@ -606,7 +605,7 @@ class LocoTransformerEncoder(nn.Module):
       else:
         self.depth_up_conv = nn.Conv2d(64, token_dim, 1)
 
-    self.base = KANBase(
+    self.base = MLPBase(
       input_shape=state_input_dim,
       hidden_shapes=hidden_shapes,
       # last_activation_func=nn.Tanh,

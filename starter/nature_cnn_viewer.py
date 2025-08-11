@@ -47,7 +47,7 @@ def get_args():
   parser.add_argument('--snap_check', type=str, default='best')
 
   # tensorboard
-  parser.add_argument("--id", type=str,   default=None,
+  parser.add_argument("--id", type=str,   default="",
                       help="id for tensorboard", )
 
   args = parser.parse_args()
@@ -58,9 +58,6 @@ def get_args():
 
 
 args = get_args()
-
-# params = get_params(args.config)
-
 
 # from metaworld_utils.meta_env import get_meta_env
 
@@ -74,8 +71,8 @@ PARAM_PATH = "{}/{}/{}/{}/params.json".format(
   args.env_name,
   args.seed
 )
-# params = get_params(args.config)
-params = get_params(PARAM_PATH)
+params = get_params(args.config)
+# params = get_params(PARAM_PATH)
 
 # params["env"]["env_build"]["enable_rendering"] = False
 params["env"]["env_build"]["enable_rendering"] = True

@@ -96,8 +96,8 @@
         "eval_interval": 10
     },
     "ppo": {
-        "plr": 0.0002,
-        "vlr": 0.0002,
+        "plr": 0.0005,
+        "vlr": 0.0005,
         "clip_para": 0.2,
         "opt_epochs": 3,
         "tau": 0.95,

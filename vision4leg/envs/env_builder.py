@@ -302,7 +302,7 @@ def build_a1_ground_env(
     mesh_filename='terrain9735.obj',
     terrain_type=a1_rg.TerrainTypeDict[terrain_type],
     mesh_scale=[0.6, 0.3, 0.2],
-    height_range=0.1,
+    height_range=0.05,
     random_shape=random_shape,
     moving=moving
   )

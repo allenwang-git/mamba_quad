@@ -41,7 +41,7 @@
                 0.01
             ],
             "target_vel": 1.0,
-            "goal": true,
+            "goal": false,
             "random_init_range": 1.0,
             "domain_randomization": true,
             "enable_action_interpolation": false,

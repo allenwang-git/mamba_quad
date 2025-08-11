@@ -532,7 +532,7 @@ class TerrainRandomizer(env_randomizer_base.EnvRandomizerBase):
       box_visual_id = env.pybullet_client.createVisualShape(
         env.pybullet_client.GEOM_BOX, halfExtents=[
           half_length, half_length, half_height],
-        rgbaColor=(0.1, 0.1, 0.1, 1))
+        rgbaColor=(0.82, 0.82, 0.88, 1))
 
       total_id = env.pybullet_client.createMultiBody(
         baseMass=0,
@@ -601,7 +601,7 @@ class TerrainRandomizer(env_randomizer_base.EnvRandomizerBase):
       box_visual_id = env.pybullet_client.createVisualShape(
         env.pybullet_client.GEOM_BOX, halfExtents=[
           half_length, half_length, half_height],
-        rgbaColor=(0.1, 0.1, 0.1, 1))
+        rgbaColor=(0.82, 0.82, 0.88, 1))
 
       total_id = env.pybullet_client.createMultiBody(
         baseMass=0,
@@ -622,7 +622,7 @@ class TerrainRandomizer(env_randomizer_base.EnvRandomizerBase):
     box_visual_id = env.pybullet_client.createVisualShape(
       env.pybullet_client.GEOM_BOX,
       halfExtents=[10, half_length, 3 * half_height],
-      rgbaColor=(0.1, 0.1, 0.1, 1)
+      rgbaColor=(0.82, 0.82, 0.88, 1)
     )
 
     env.pybullet_client.createMultiBody(
@@ -642,7 +642,7 @@ class TerrainRandomizer(env_randomizer_base.EnvRandomizerBase):
     box_visual_id = env.pybullet_client.createVisualShape(
       env.pybullet_client.GEOM_BOX,
       halfExtents=[10, half_length, 3 * half_height],
-      rgbaColor=(0.1, 0.1, 0.1, 1)
+      rgbaColor=(0.82, 0.82, 0.88, 1)
     )
 
     env.pybullet_client.createMultiBody(
@@ -662,7 +662,7 @@ class TerrainRandomizer(env_randomizer_base.EnvRandomizerBase):
     box_visual_id = env.pybullet_client.createVisualShape(
       env.pybullet_client.GEOM_BOX,
       halfExtents=[half_length, 10, 3 * half_height],
-      rgbaColor=(0.1, 0.1, 0.1, 1)
+      rgbaColor=(0.82, 0.82, 0.88, 1)
     )
 
     env.pybullet_client.createMultiBody(
@@ -805,7 +805,7 @@ class TerrainRandomizer(env_randomizer_base.EnvRandomizerBase):
       box_visual_id = env.pybullet_client.createVisualShape(
         env.pybullet_client.GEOM_BOX, halfExtents=[
           half_length, half_length, half_height],
-        rgbaColor=(0.1, 0.1, 0.1, 1))
+        rgbaColor=(0.82, 0.82, 0.88, 1))
 
       total_id = env.pybullet_client.createMultiBody(
         baseMass=0,
@@ -832,7 +832,7 @@ class TerrainRandomizer(env_randomizer_base.EnvRandomizerBase):
       box_visual_id = env.pybullet_client.createVisualShape(
         env.pybullet_client.GEOM_BOX,
         halfExtents=[10, half_length, 3 * half_height],
-        rgbaColor=(0.1, 0.1, 0.1, 1)
+        rgbaColor=(0.82, 0.82, 0.88, 1)
       )
 
       env.pybullet_client.createMultiBody(
@@ -852,7 +852,7 @@ class TerrainRandomizer(env_randomizer_base.EnvRandomizerBase):
       box_visual_id = env.pybullet_client.createVisualShape(
         env.pybullet_client.GEOM_BOX,
         halfExtents=[10, half_length, 3 * half_height],
-        rgbaColor=(0.1, 0.1, 0.1, 1)
+        rgbaColor=(0.82, 0.82, 0.88, 1)
       )
 
       env.pybullet_client.createMultiBody(
@@ -871,7 +871,7 @@ class TerrainRandomizer(env_randomizer_base.EnvRandomizerBase):
       box_visual_id = env.pybullet_client.createVisualShape(
         env.pybullet_client.GEOM_BOX,
         halfExtents=[half_length, 10, 3 * half_height],
-        rgbaColor=(0.1, 0.1, 0.1, 1)
+        rgbaColor=(0.82, 0.82, 0.88, 1)
       )
 
       env.pybullet_client.createMultiBody(
@@ -891,7 +891,7 @@ class TerrainRandomizer(env_randomizer_base.EnvRandomizerBase):
       box_visual_id = env.pybullet_client.createVisualShape(
         env.pybullet_client.GEOM_BOX,
         halfExtents=[10, half_length, 3 * half_height],
-        rgbaColor=(0.1, 0.1, 0.1, 1)
+        rgbaColor=(0.82, 0.82, 0.88, 1)
       )
 
       env.pybullet_client.createMultiBody(
@@ -911,7 +911,7 @@ class TerrainRandomizer(env_randomizer_base.EnvRandomizerBase):
       box_visual_id = env.pybullet_client.createVisualShape(
         env.pybullet_client.GEOM_BOX,
         halfExtents=[10, half_length, 3 * half_height],
-        rgbaColor=(0.1, 0.1, 0.1, 1)
+        rgbaColor=(0.82, 0.82, 0.88, 1)
       )
 
       env.pybullet_client.createMultiBody(
@@ -930,7 +930,7 @@ class TerrainRandomizer(env_randomizer_base.EnvRandomizerBase):
       box_visual_id = env.pybullet_client.createVisualShape(
         env.pybullet_client.GEOM_BOX,
         halfExtents=[half_length, 10, 3 * half_height],
-        rgbaColor=(0.1, 0.1, 0.1, 1)
+        rgbaColor=(0.82, 0.82, 0.88, 1)
       )
 
       env.pybullet_client.createMultiBody(

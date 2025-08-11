@@ -67,10 +67,10 @@ PARAM_PATH = "{}/{}/{}/{}/params.json".format(
   args.env_name,
   args.seed[0]
 )
-# env_params = get_params(args.config)
-
-params = get_params(PARAM_PATH)
-env_params = params
+env_params = get_params(args.config)
+params = env_params
+# params = get_params(PARAM_PATH)
+# env_params = params
 
 env_params["env"]["env_build"]["reset_frame_idx_each_step"] = True
 if "get_image_interval" in env_params["env"]["env_build"] and env_params["env"]["env_build"]["get_image_interval"] > 1:
@@ -242,6 +242,43 @@ elif args.add_tag == "state-only":
     output_shape=env.action_space.shape[0],
     **params['net'],
     **params['policy'])
+elif args.add_tag == "vision-only-mlp" or args.add_tag == "vision-only-kan":
+  if args.add_tag == "vision-only-kan":
+    params["net"]['base_type'] = 'KAN'
+  else:
+    params["net"]['base_type'] = 'MLP'
+  encoder = networks.NatureEncoder(
+    in_channels=env.image_channels,
+    **params["encoder"]
+  )
+
+  pf = policies.GaussianContPolicyNatureEncoderProj(
+    encoder=encoder,
+    visual_input_shape=(env.image_channels, 64, 64),
+    output_shape=env.action_space.shape[0],
+    **params["net"],
+    **params["policy"]
+  )
+elif args.add_tag == "vision-state-mlp" or args.add_tag == "vision-state-kan":
+  if args.add_tag == "vision-state-kan":
+    params["net"]['base_type'] = 'KAN'
+  else:
+    params["net"]['base_type'] = 'MLP'
+  encoder = networks.NatureFuseEncoder(
+    in_channels=env.image_channels,
+    state_input_dim=env.observation_space.shape[0],
+    base_type=params["net"]['base_type'],
+    **params["encoder"]
+  )
+
+  pf = policies.GaussianContPolicyImpalaEncoderProj(
+    encoder=encoder,
+    state_input_shape=env.observation_space.shape[0],
+    visual_input_shape=(env.image_channels, 64, 64),
+    output_shape=env.action_space.shape[0],
+    **params["net"],
+    **params["policy"]
+  )
 
 test_results = []
 goal_collect_count = []

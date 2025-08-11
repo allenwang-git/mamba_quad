@@ -41,7 +41,7 @@
                 0.01
             ],
             "target_vel": 1.0,
-            "goal": true,
+            "goal": false,
             "random_init_range": 1.0,
             "domain_randomization": true,
             "enable_action_interpolation": false,
@@ -97,8 +97,8 @@
         "eval_interval": 10
     },
     "ppo": {
-        "plr": 0.0003,
-        "vlr": 0.0003,
+        "plr": 0.0001,
+        "vlr": 0.0001,
         "clip_para": 0.2,
         "opt_epochs": 3,
         "tau": 0.95,

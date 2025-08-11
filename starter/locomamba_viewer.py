@@ -59,6 +59,7 @@ def get_args():
 
 args = get_args()
 
+
 # from metaworld_utils.meta_env import get_meta_env
 
 
@@ -97,7 +98,7 @@ if hasattr(env, "_obs_normalizer"):
 
 env.eval()
 
-# params['net']['base_type'] = networks.MLPBase
+params['net']['base_type'] = networks.MLPBase
 params['net']['activation_func'] = torch.nn.ReLU
 # params['net']['activation_func'] = torch.nn.ReLU
 
@@ -105,19 +106,44 @@ obs_normalizer = env._obs_normalizer if hasattr(env, "_obs_normalizer") \
   else None
 
 encoder = networks.LocoTransformerEncoder(
-  in_channels=env.image_channels,
-  state_input_dim=env.observation_space.shape[0],
-  **params["encoder"]
-)
+    in_channels=env.image_channels,
+    state_input_dim=env.observation_space.shape[0],
+    **params["encoder"]
+  )
 
-pf = policies.GaussianContPolicyLocoTransformer(
+# Convert transformer_params to mamba_params if they exist
+net_params = params["net"].copy()
+if "transformer_params" in net_params:
+  # Convert transformer parameters to Mamba parameters
+  mamba_params = []
+  for n_head, dim_feedforward in net_params["transformer_params"]:
+    # Map transformer params to mamba params
+    # d_model: feature dimension (from encoder)
+    # d_state: hidden state dimension (typically 16)
+    # d_conv: convolution width (typically 4)
+    # expand: expansion factor (typically 2)
+    d_model = encoder.visual_dim
+    d_state = 16
+    d_conv = 4
+    expand = 2
+    mamba_params.append((d_model, d_state, d_conv, expand))
+  
+  net_params["mamba_params"] = mamba_params
+  del net_params["transformer_params"]
+else:
+  # Default Mamba parameters if no transformer_params specified
+  net_params["mamba_params"] = [(encoder.visual_dim, 16, 4, 2)]
+
+pf = policies.GaussianContPolicyLocoMamba(
   encoder=encoder,
   state_input_shape=env.observation_space.shape[0],
   visual_input_shape=(env.image_channels, 64, 64),
   output_shape=env.action_space.shape[0],
-  **params["net"],
+  **net_params,
   **params["policy"]
 )
+
+
 
 PATH = "{}/{}/{}/{}/model/model_pf_{}.pth".format(
   args.log_dir,
@@ -141,6 +167,7 @@ pf.load_state_dict(
   )
 )
 
+pf.cuda()
 pf.eval()
 # pf.load_state_dict(torch.load(PATH, map_location="cuda:0"))
 # qf1.load_state_dict(torch.load(Value_PATH, map_location="cuda:0"))
@@ -263,7 +290,7 @@ for _ in range(1):
       # embedding_input = embedding_input.unsqueeze(0)
       # print(ob_t)
       # action, general_weight, last_weight = pf.eval_act(ob_t, embedding_input, return_weights = True )
-      action = pf.eval_act(ob_t)
+      action = pf.eval_act(ob_t.cuda())
       # action = pf.explore(ob_t)
       # action = action["action"].squeeze(0).cpu().numpy()
       # print(action.shape)
