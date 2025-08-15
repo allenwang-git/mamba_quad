@@ -114,8 +114,8 @@ def experiment(args):
     net_params["mamba_params"] = mamba_params
     del net_params["transformer_params"]
   else:
-    # Default Mamba parameters if no transformer_params specified
-    net_params["mamba_params"] = [(encoder.visual_dim, 16, 4, 2)]
+    assert "mamba_params" in net_params, \
+      "Mamba requires mamba_params in net configuration"
 
   pf = policies.GaussianContPolicyMambaTransformer(
     encoder=encoder,

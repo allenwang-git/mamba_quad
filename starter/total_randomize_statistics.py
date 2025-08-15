@@ -161,8 +161,7 @@ if args.add_tag == "mamba-vision-state":
     net_params["mamba_params"] = mamba_params
     del net_params["transformer_params"]
   else:
-    # Default Mamba parameters if no transformer_params specified
-    net_params["mamba_params"] = [(encoder.visual_dim, 16, 4, 2)]
+    assert "mamba_params" in net_params, "mamba_params must be specified in net_params"
 
   pf = policies.GaussianContPolicyLocoMamba(
     encoder=encoder,
@@ -194,8 +193,7 @@ elif args.add_tag == "mamba-vision-only":
     net_params["mamba_params"] = mamba_params
     del net_params["transformer_params"]
   else:
-    # Default Mamba parameters if no transformer_params specified
-    net_params["mamba_params"] = [(encoder.visual_dim, 16, 4, 2)]
+    assert "mamba_params" in net_params, "mamba_params must be specified in net_params"
 
   pf = policies.GaussianContPolicyMambaTransformer(
     encoder=encoder,

@@ -20,6 +20,14 @@
 
 ## View
 
+
+```
+cd /home/ubuntu/anaconda3/envs/tensorflow_p36/lib
+mv libstdc++.so.6 libstdc++.so.6.old
+ln -s /usr/lib/x86_64-linux-gnu/libstdc++.so.6 libstdc++.so.6
+```
+
+
 - python starter/locomamba_viewer.py --config config/mamba/static/thin.json --log_dir ../logmamba/logs/mamba-vision-state --env_name A1MoveGround
 - python starter/locomamba_viewer.py --config config/mamba/static/thin-random-shape.json --log_dir ../logmamba/logs/mamba-vision-state --env_name A1MoveGround
 
