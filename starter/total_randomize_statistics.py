@@ -45,7 +45,7 @@ def get_args():
   parser.add_argument('--snap_check', type=str, default='best')
 
   # tensorboard
-  parser.add_argument("--id", type=str, default=None,
+  parser.add_argument("--id", type=str, default="",
                       help="id for tensorboard", )
 
   args = parser.parse_args()
@@ -100,8 +100,8 @@ if hasattr(env, "_obs_normalizer"):
 env.eval()
 
 
-# params['net']['base_type'] = networks.MLPBase
-params['net']['activation_func'] = torch.nn.ReLU
+params['net']['base_type'] = networks.MLPBase
+# params['net']['activation_func'] = torch.nn.ReLU
 # params['net']['activation_func'] = torch.nn.ReLU
 
 obs_normalizer = env._obs_normalizer if hasattr(env, "_obs_normalizer") \
@@ -123,20 +123,125 @@ obs_normalizer = env._obs_normalizer if hasattr(env, "_obs_normalizer") \
 # )
 params['net']['activation_func'] = torch.nn.ReLU
 
-encoder = networks.NatureFuseEncoder(
-  in_channels=env.image_channels,
-  state_input_dim=env.observation_space.shape[0],
-  **params["encoder"]
-)
+# encoder = networks.NatureFuseEncoder(
+#   in_channels=env.image_channels,
+#   state_input_dim=env.observation_space.shape[0],
+#   **params["encoder"]
+# )
 
-pf = policies.GaussianContPolicyImpalaEncoderProj(
-  encoder=encoder,
-  state_input_shape=env.observation_space.shape[0],
-  visual_input_shape=(env.image_channels, 64, 64),
-  output_shape=env.action_space.shape[0],
-  **params["net"],
-  **params["policy"]
-)
+# pf = policies.GaussianContPolicyImpalaEncoderProj(
+#   encoder=encoder,
+#   state_input_shape=env.observation_space.shape[0],
+#   visual_input_shape=(env.image_channels, 64, 64),
+#   output_shape=env.action_space.shape[0],
+#   **params["net"],
+#   **params["policy"]
+# )
+if args.add_tag == "mamba-vision-state":
+  
+  ## mamba-vision-state policy
+  encoder = networks.LocoTransformerEncoder(
+    in_channels=env.image_channels,
+    state_input_dim=env.observation_space.shape[0],
+    **params["encoder"]
+  )
+
+  # Convert transformer_params to mamba_params if they exist
+  net_params = params["net"].copy()
+  if "transformer_params" in net_params:
+    # Convert transformer parameters to Mamba parameters
+    mamba_params = []
+    for n_head, dim_feedforward in net_params["transformer_params"]:
+      d_model = encoder.visual_dim
+      d_state = 16
+      d_conv = 4
+      expand = 2
+      mamba_params.append((d_model, d_state, d_conv, expand))
+    
+    net_params["mamba_params"] = mamba_params
+    del net_params["transformer_params"]
+  else:
+    # Default Mamba parameters if no transformer_params specified
+    net_params["mamba_params"] = [(encoder.visual_dim, 16, 4, 2)]
+
+  pf = policies.GaussianContPolicyLocoMamba(
+    encoder=encoder,
+    state_input_shape=env.observation_space.shape[0],
+    visual_input_shape=(env.image_channels, 64, 64),
+    output_shape=env.action_space.shape[0],
+    **net_params,
+    **params["policy"]
+  )
+elif args.add_tag == "mamba-vision-only":
+
+  ## mamba-vision-only policy
+  encoder = networks.TransformerEncoder(
+    in_channels=env.image_channels,
+    **params["encoder"]
+  )
+  # Convert transformer_params to mamba_params if they exist
+  net_params = params["net"].copy()
+  if "transformer_params" in net_params:
+    # Convert transformer parameters to Mamba parameters
+    mamba_params = []
+    for n_head, dim_feedforward in net_params["transformer_params"]:
+      d_model = encoder.visual_dim
+      d_state = 16
+      d_conv = 4
+      expand = 2
+      mamba_params.append((d_model, d_state, d_conv, expand))
+    
+    net_params["mamba_params"] = mamba_params
+    del net_params["transformer_params"]
+  else:
+    # Default Mamba parameters if no transformer_params specified
+    net_params["mamba_params"] = [(encoder.visual_dim, 16, 4, 2)]
+
+  pf = policies.GaussianContPolicyMambaTransformer(
+    encoder=encoder,
+    visual_input_shape=(env.image_channels, 64, 64),
+    output_shape=env.action_space.shape[0],
+    **net_params,
+    **params["policy"]
+  )
+elif args.add_tag == "tf-vision-state":
+  ## tf-vision-state policy
+  encoder = networks.LocoTransformerEncoder(
+    in_channels=env.image_channels,
+    state_input_dim=env.observation_space.shape[0],
+    **params["encoder"]
+  )
+
+  pf = policies.GaussianContPolicyLocoTransformer(
+    encoder=encoder,
+    state_input_shape=env.observation_space.shape[0],
+    visual_input_shape=(env.image_channels, 64, 64),
+    output_shape=env.action_space.shape[0],
+    **params["net"],
+    **params["policy"]
+  )
+elif args.add_tag == "tf-vision-only":
+
+  ## tf-vision-only policy
+  encoder = networks.TransformerEncoder(
+    in_channels=env.image_channels,
+    **params["encoder"]
+  )
+
+  pf = policies.GaussianContPolicyTransformer(
+    encoder=encoder,
+    visual_input_shape=(env.image_channels, 64, 64),
+    output_shape=env.action_space.shape[0],
+    **params["net"],
+    **params["policy"]
+  )
+elif args.add_tag == "state-only":
+  ## State only policy
+  pf = policies.GaussianContPolicyBasicBias(
+    input_shape=env.observation_space.shape[0],
+    output_shape=env.action_space.shape[0],
+    **params['net'],
+    **params['policy'])
 
 test_results = []
 goal_collect_count = []
@@ -158,7 +263,7 @@ for seed in args.seed:
       args.log_dir,
       args.id,
       params['env_name'],
-      seed,
+      0, # seed,
       model_check
     )
     with open(NORM_PATH, 'rb') as f:
@@ -169,7 +274,7 @@ for seed in args.seed:
     args.log_dir,
     args.id,
     params['env_name'],
-    seed,
+    0, # seed,
     model_check
   )
 
@@ -184,6 +289,7 @@ for seed in args.seed:
       map_location="cuda:0"
     )
   )
+  pf.cuda()
   pf.eval()
 
   num_episodes = args.num_episodes
@@ -216,7 +322,7 @@ for seed in args.seed:
     start_pos, _ = pyb.getBasePositionAndOrientation(sim_model)
 
     while True:
-      ob_t = torch.Tensor(obs).unsqueeze(0)
+      ob_t = torch.Tensor(obs).unsqueeze(0).cuda()
 
       action = pf.eval_act(ob_t)
 
@@ -290,10 +396,10 @@ output_dic = {
     "mean": np.mean(reward_result),
     "std": np.std(reward_result),
   },
-  "goal_results": {
-    "mean": np.mean(goal_result),
-    "std": np.std(goal_result),
-  },
+  # "goal_results": {
+  #   "mean": np.mean(goal_result),
+  #   "std": np.std(goal_result),
+  # },
   "collision_results": {
     "mean": np.mean(collision_result),
     "std": np.std(collision_result),
@@ -303,7 +409,7 @@ output_dic = {
     "std": np.std(distance_result),
   },
 }
-
+import json
 print(output_dic)
-with open("./stats/{}.pkl".format(args.id), "wb") as f:
-  pickle.dump(output_dic, f)
+with open("./stats/{}.json".format(args.add_tag), "w") as f:
+   f.write(json.dumps(output_dic))

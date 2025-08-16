@@ -1,14 +1,12 @@
 import os
-os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
-os.environ['PYOPENGL_PLATFORM'] = 'egl'
-os.environ['EGL_LOG_LEVEL'] = 'fatal'
-import time
+# Note: Mamba requires CUDA, so we ensure CUDA is available
+# If you need to restrict GPU usage, set CUDA_VISIBLE_DEVICES to specific GPU IDs (e.g., "0,1")
+# os.environ["CUDA_VISIBLE_DEVICES"] = "0"  # Uncomment to use specific GPUs
 import sys
 import os.path as osp
 import numpy as np
 sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
-from vision4leg.get_env import get_subprocvec_env, get_vec_env
-from torchrl.env import get_vec_env
+from vision4leg.get_env import get_subprocvec_env
 import random
 import gym
 from torchrl.collector.on_policy import VecOnPolicyCollector
@@ -21,8 +19,6 @@ from torchrl.utils import get_params
 from torchrl.utils import get_args
 import torch
 
-import warnings
-warnings.filterwarnings("ignore")
 
 args = get_args()
 params = get_params(args.config)
@@ -30,6 +26,18 @@ params = get_params(args.config)
 
 def experiment(args):
 
+  # Mamba requires CUDA - check availability
+  if not torch.cuda.is_available():
+    raise RuntimeError(
+      "Mamba requires CUDA but CUDA is not available. "
+      "Please ensure you have a CUDA-capable GPU and PyTorch with CUDA support installed."
+    )
+  
+  # Force CUDA usage for Mamba
+  if not args.cuda:
+    print("Warning: Forcing CUDA usage because Mamba requires CUDA")
+    args.cuda = True
+  
   device = torch.device(
     "cuda:{}".format(args.device) if args.cuda else "cpu")
 
@@ -81,31 +89,51 @@ def experiment(args):
   params['net']['base_type'] = networks.MLPBase
   # params['net']['activation_func'] = torch.nn.Tanh
 
-  encoder = networks.LocoTransformerEncoder(
+  encoder = networks.TransformerEncoder(
     in_channels=env.image_channels,
-    state_input_dim=env.observation_space.shape[0],
     **params["encoder"]
   )
 
-  pf = policies.GaussianContPolicyLocoTransformer(
+  # Convert transformer_params to mamba_params if they exist
+  net_params = params["net"].copy()
+  if "transformer_params" in net_params:
+    # Convert transformer parameters to Mamba parameters
+    mamba_params = []
+    for n_head, dim_feedforward in net_params["transformer_params"]:
+      # Map transformer params to mamba params
+      # d_model: feature dimension (from encoder)
+      # d_state: hidden state dimension (typically 16)
+      # d_conv: convolution width (typically 4)
+      # expand: expansion factor (typically 2)
+      d_model = encoder.visual_dim
+      d_state = 16
+      d_conv = 4
+      expand = 2
+      mamba_params.append((d_model, d_state, d_conv, expand))
+    
+    net_params["mamba_params"] = mamba_params
+    del net_params["transformer_params"]
+  else:
+    # Default Mamba parameters if no transformer_params specified
+    net_params["mamba_params"] = [(encoder.visual_dim, 16, 4, 2)]
+
+  pf = policies.GaussianContPolicyMambaTransformer(
     encoder=encoder,
-    state_input_shape=env.observation_space.shape[0],
     visual_input_shape=(env.image_channels, 64, 64),
     output_shape=env.action_space.shape[0],
-    **params["net"],
+    **net_params,
     **params["policy"]
   )
 
-  vf = networks.LocoTransformer(
+  vf = networks.MambaTransformer(
     encoder=encoder,
-    state_input_shape=env.observation_space.shape[0],
     visual_input_shape=(env.image_channels, 64, 64),
     output_shape=1,
-    **params["net"]
+    **net_params
   )
 
-  # print(pf)
-  # print(vf)
+  print(pf)
+  print(vf)
 
   params['general_setting']['collector'] = VecOnPolicyCollector(
     vf, env=env, eval_env=eval_env, pf=pf,

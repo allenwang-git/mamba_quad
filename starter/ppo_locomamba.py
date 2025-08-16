@@ -30,6 +30,18 @@ params = get_params(args.config)
 
 def experiment(args):
 
+  # Mamba requires CUDA - check availability
+  if not torch.cuda.is_available():
+    raise RuntimeError(
+      "Mamba requires CUDA but CUDA is not available. "
+      "Please ensure you have a CUDA-capable GPU and PyTorch with CUDA support installed."
+    )
+  
+  # Force CUDA usage for Mamba
+  if not args.cuda:
+    print("Warning: Forcing CUDA usage because Mamba requires CUDA")
+    args.cuda = True
+  
   device = torch.device(
     "cuda:{}".format(args.device) if args.cuda else "cpu")
 
@@ -87,21 +99,44 @@ def experiment(args):
     **params["encoder"]
   )
 
-  pf = policies.GaussianContPolicyLocoTransformer(
+  # Convert transformer_params to mamba_params if they exist
+  net_params = params["net"].copy()
+  if "transformer_params" in net_params:
+    # Convert transformer parameters to Mamba parameters
+    mamba_params = []
+    for n_head, dim_feedforward in net_params["transformer_params"]:
+      # Map transformer params to mamba params
+      # d_model: feature dimension (from encoder)
+      # d_state: hidden state dimension (typically 16)
+      # d_conv: convolution width (typically 4)
+      # expand: expansion factor (typically 2)
+      d_model = encoder.visual_dim
+      d_state = 16
+      d_conv = 4
+      expand = 2
+      mamba_params.append((d_model, d_state, d_conv, expand))
+    
+    net_params["mamba_params"] = mamba_params
+    del net_params["transformer_params"]
+  else:
+    # Default Mamba parameters if no transformer_params specified
+    net_params["mamba_params"] = [(encoder.visual_dim, 16, 4, 2)]
+
+  pf = policies.GaussianContPolicyLocoMamba(
     encoder=encoder,
     state_input_shape=env.observation_space.shape[0],
     visual_input_shape=(env.image_channels, 64, 64),
     output_shape=env.action_space.shape[0],
-    **params["net"],
+    **net_params,
     **params["policy"]
   )
 
-  vf = networks.LocoTransformer(
+  vf = networks.LocoMamba(
     encoder=encoder,
     state_input_shape=env.observation_space.shape[0],
     visual_input_shape=(env.image_channels, 64, 64),
     output_shape=1,
-    **params["net"]
+    **net_params
   )
 
   # print(pf)

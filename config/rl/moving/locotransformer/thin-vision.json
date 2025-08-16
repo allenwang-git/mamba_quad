@@ -28,9 +28,9 @@
             "add_last_action_input": true,
             "no_displacement": true,
             "diagonal_act": true,
-            "get_image": false,
-            "depth_image": false,
-            "depth_norm": false,
+            "get_image": true,
+            "depth_image": true,
+            "depth_norm": true,
             "rgbd": false,
             "grayscale": false,
             "alive_reward": -0.05,
@@ -40,6 +40,8 @@
                 0.01,
                 0.01
             ],
+            "moving": true,
+            "vision_only": true,
             "target_vel": 1.0,
             "random_init_range": 1.0,
             "domain_randomization": true,
@@ -59,14 +61,21 @@
         "hidden_shapes": [
             256,
             256
-        ]
+        ],
+        "visual_dim": 256
     },
     "net": {
-        "append_hidden_shapes": [
-            256,
-            256
+        "transformer_params": [
+            [
+                1,
+                256
+            ],
+            [
+                1,
+                256
+            ]
         ],
-        "hidden_shapes": [
+        "append_hidden_shapes": [
             256,
             256
         ]
@@ -78,7 +87,7 @@
     },
     "general_setting": {
         "discount": 0.99,
-        "num_epochs": 800,
+        "num_epochs": 1500,
         "batch_size": 1024,
         "gae": true,
         "save_interval": 100,
